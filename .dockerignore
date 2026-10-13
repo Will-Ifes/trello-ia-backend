@@ -1,0 +1,15 @@
+# Ignora arquivos de build e desenvolvimento
+node_modules
+dist
+.next
+
+# Configs e arquivos sensíveis
+.env
+*.log
+*.tsbuildinfo
+
+# Arquivos de configuração duplicados
+Dockerfile
+Dockerfile.dev
+.pnpm-store
+cookies.txt

@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16
+    container_name: trelloia-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - trelloia_pgdata_prod:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - trelloia-shared
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trelloia-backend
+    ports:
+      - '8080:3000'
+    env_file:
+      - .env.prod
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    networks:
+      - trelloia-shared
+
+volumes:
+  trelloia_pgdata_prod:
+
+networks:
+  trelloia-shared:
+    external: true
