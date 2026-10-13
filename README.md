@@ -37,6 +37,5 @@ pnpm build
 ## Projeto
 
 - [Frontend](https://github.com/Will-Ifes/trello-ia-frontend)
-- [Projeto original](https://github.com/Wildemberg-otus7/trello.ia-backend)
 
-Versão de portfólio com histórico novo para excluir credenciais e configurações privadas versionadas no repositório original. Esta cópia ainda não foi validada em execução após a migração.
+Projeto pessoal iniciado em 2025 e trazido para este perfil em uma cópia revisada. O histórico desta cópia começa na migração; o desenvolvimento original ocorreu em outra conta GitHub. A execução após a migração ainda não foi validada.
