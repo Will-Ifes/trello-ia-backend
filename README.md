@@ -4,7 +4,7 @@ API do projeto pessoal Trello.ia, uma aplicação de gestão de tarefas inspirad
 
 ---
 
-## 🚀 Tecnologias utilizadas
+## Tecnologias
 
 - **NestJS 11 e TypeScript** — estrutura da API.
 - **Prisma ORM + PostgreSQL** — modelo de dados e migrações.
@@ -15,7 +15,7 @@ API do projeto pessoal Trello.ia, uma aplicação de gestão de tarefas inspirad
 
 ---
 
-## ✅ O que já está implementado
+## Funcionalidades presentes
 
 - Cadastro e login de usuários com senha armazenada em hash.
 - Autenticação JWT com cookie HTTP-only.
@@ -24,7 +24,7 @@ API do projeto pessoal Trello.ia, uma aplicação de gestão de tarefas inspirad
 - Testes para os fluxos de autenticação.
 - Arquivos de Docker para ambientes de desenvolvimento e produção.
 
-## 🔁 Próximas etapas
+## Evolução
 
 - CRUD de quadros, listas e cards.
 - Regras de colaboração e organização de tarefas.
@@ -34,7 +34,42 @@ API do projeto pessoal Trello.ia, uma aplicação de gestão de tarefas inspirad
 
 ---
 
-## 📁 Estrutura do projeto
+## Contexto e decisões técnicas
+
+A API começa pelo domínio de identidade: cadastro, login, consulta do usuário e recuperação de senha. O NestJS separa controller, service, estratégia JWT e acesso ao banco.
+
+- **Prisma:** schema e migrações tornam as relações de dados explícitas.
+- **Hash de senha:** o service usa bcryptjs e remove a senha das respostas preparadas para o cliente.
+- **JWT:** autenticação de rotas e token temporário de recuperação.
+- **Cookie HTTP-only:** o controller configura o cookie de login; as ações do frontend fazem a integração.
+
+## Endpoints de autenticação
+
+| Método | Rota | Finalidade |
+| --- | --- | --- |
+| POST | `/auth/register` | Cadastro |
+| POST | `/auth/login` | Login e cookie |
+| POST | `/auth/forgot-password` | Solicitar link por e-mail |
+| POST | `/auth/reset-password` | Redefinir senha com token |
+| POST | `/auth/logout` | Limpar cookie |
+| GET | `/auth/me` | Consultar identidade autenticada |
+
+## Por dentro do código
+
+- [Controller e contrato HTTP](src/auth/auth.controller.ts).
+- [Hash, autenticação e recuperação](src/auth/auth.service.ts).
+- [Configuração obrigatória do segredo](src/config/jwt-secret.ts).
+- [Schema](prisma/schema.prisma).
+- [Testes do service](src/auth/auth.service.spec.ts).
+- [Teste de login de ponta a ponta](test/auth/login.e2e-spec.ts).
+
+## Limites da versão
+
+Os DTOs possuem regras de validação, mas a inicialização atual não registra um `ValidationPipe` global; a aplicação dessas regras deve ser revisada. O token de recuperação é verificado por JWT e expiração; invalidação após uso e proteção contra abuso são evoluções pendentes. O cookie usa `secure: true`, portanto o transporte local precisa ser compatível.
+
+Os testes estão versionados; isso não comprova cobertura completa ou aprovação atual. Configure banco e e-mail de teste próprios. Quadros, listas, cards e IA ainda não são recursos entregues.
+
+## Organização do código
 
 ```text
 src/
@@ -51,7 +86,7 @@ test/              # Testes de integração
 
 ---
 
-## 🛠️ Executar localmente
+## Executar localmente
 
 Requer Node.js, pnpm e PostgreSQL. Copie `.env.example` para `.env` e configure seus próprios valores de `DATABASE_URL`, `JWT_SECRET` e `FRONTEND_URL`. Para recuperação de senha, configure também `EMAIL_USER` e `EMAIL_PASS`.
 
@@ -80,19 +115,19 @@ Os arquivos `docker-compose.dev.yml` e `docker-compose.prod.yml` estão disponí
 
 ---
 
-## 🔐 Configuração de ambiente
+## Configuração de ambiente
 
 O arquivo [`.env.example`](.env.example) contém apenas valores de exemplo. Crie segredos novos para seu ambiente e mantenha `.env` e `.env.prod` fora do versionamento. A aplicação exige `JWT_SECRET` configurado; não utiliza uma chave padrão no código.
 
 ---
 
-## 🔗 Projeto relacionado
+## Projeto relacionado
 
 - [Frontend Next.js](https://github.com/Will-Ifes/trello-ia-frontend)
 
 ---
 
-## 🤝 Contribuições e licença
+## Colaboração e licença
 
 Sugestões podem ser enviadas por issue ou pull request. O projeto ainda não possui licença definida; consulte o autor antes de reutilizar o código fora das permissões padrão do GitHub.
 
