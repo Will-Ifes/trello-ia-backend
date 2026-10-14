@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./.github/readme-cover.svg" alt="Trello.ia | identidade: Cadastro, autenticação e recuperação de acesso." width="100%" />
+</p>
+
 # Trello.ia · Backend
 
 API de autenticação e persistência para uma aplicação de organização de tarefas.
@@ -5,6 +9,13 @@ API de autenticação e persistência para uma aplicação de organização de t
 **NestJS · TypeScript · Prisma · PostgreSQL**
 
 [Frontend](https://github.com/Will-Ifes/trello-ia-frontend) · [Código](src) · [Execução](#executar)
+
+## Explore o diferencial
+
+| Ponto de entrada | O que observar |
+| --- | --- |
+| [Regras além do endpoint](src/auth/auth.service.ts) | O service reúne hash, autenticação e recuperação de senha. |
+| [Teste do domínio](src/auth/auth.service.spec.ts) | Os testes do service documentam cenários do fluxo de autenticação. |
 
 ## Destaques
 
@@ -66,12 +77,12 @@ test/              # Testes de integração
 
 ### Tecnologias
 
-- **NestJS 11 e TypeScript** — estrutura da API.
-- **Prisma ORM + PostgreSQL** — modelo de dados e migrações.
-- **JWT, Passport e bcryptjs** — autenticação e proteção de senha.
-- **class-validator** — validação das entradas.
-- **Jest + Supertest** — testes unitários e de integração.
-- **Docker, ESLint e Prettier** — ambiente de desenvolvimento e qualidade de código.
+- **NestJS 11 e TypeScript** · estrutura da API.
+- **Prisma ORM + PostgreSQL** · modelo de dados e migrações.
+- **JWT, Passport e bcryptjs** · autenticação e proteção de senha.
+- **class-validator** · declara regras nos DTOs; a aplicação global dessas regras ainda precisa de revisão.
+- **Jest + Supertest** · testes unitários e de integração.
+- **Docker, ESLint e Prettier** · ambiente de desenvolvimento e qualidade de código.
 
 </details>
 
@@ -128,14 +139,11 @@ Os testes estão versionados; isso não comprova cobertura completa ou aprovaç�
 - Regras de colaboração e organização de tarefas.
 - Recursos de IA para sugestões e automações.
 
-
-
 ### Colaboração e licença
 
 Sugestões podem ser enviadas por issue ou pull request. O projeto ainda não possui licença definida; consulte o autor antes de reutilizar o código fora das permissões padrão do GitHub.
 
 Desenvolvido por **Wildemberg de Jesus Oliveira (Will)** · [LinkedIn](https://www.linkedin.com/in/wildemberg-de-jesus-oliveira/)  
 Projeto iniciado em 2025 em outra conta GitHub e reunido neste perfil em uma cópia revisada.
-
 
 </details>
