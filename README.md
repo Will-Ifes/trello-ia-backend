@@ -4,7 +4,7 @@
 
 # Trello.ia · identidade e organização
 
-A API que dá continuidade aos projetos: autentica usuários, protege o acesso aos quadros e mantém listas e cartões no PostgreSQL. A IA transforma uma ideia em um plano inicial, com o provedor configurado no servidor.
+A API que dá continuidade aos projetos: autentica usuários, protege o acesso aos quadros e mantém listas e cartões no PostgreSQL. A IA transforma uma ideia em um plano inicial, com a Groq configurada somente no servidor.
 
 **NestJS 11 · TypeScript · Prisma 6 · PostgreSQL**
 
@@ -78,7 +78,7 @@ Foram aprovados 30 testes unitários e 14 de integração com PostgreSQL, inclui
 
 `test:e2e` exige banco com nome terminado em `_test`. No Windows, encerre a API antes de regenerar o Prisma Client, pois o engine DLL fica aberto pelo processo.
 
-Para usar um banco próprio, configure `.env` a partir de `.env.example`. `DATABASE_URL`, `JWT_SECRET` e `FRONTEND_URL` são necessários. E-mail e IA usam variáveis adicionais no servidor; os testes não enviam mensagens nem consomem créditos reais.
+Para usar um banco próprio, configure `.env` a partir de `.env.example`. `DATABASE_URL`, `JWT_SECRET` e `FRONTEND_URL` são necessários. E-mail e IA usam variáveis adicionais no servidor; os testes não enviam mensagens nem consomem créditos reais. A geração usa `GROQ_API_KEY`, modelo `openai/gpt-oss-20b` e até 5 tentativas por conta/dia UTC. Veja a configuração e os cuidados de dados no [guia de publicação](docs/deploy.md#variáveis-opcionais).
 
 A API está publicada em [trello-ia-backend.vercel.app](https://trello-ia-backend.vercel.app), no Vercel Hobby, com PostgreSQL Neon Free. O build de produção gera o cliente, aplica migrações e compila a API. As migrações foram verificadas em uma branch isolada antes da produção; o fluxo completo do site público passou em desktop e mobile. Veja [docs/deploy.md](docs/deploy.md).
 

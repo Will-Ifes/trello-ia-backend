@@ -30,7 +30,7 @@ for (const name of ['trelloia_utf8', 'trelloia_utf8_test']) {
     );
 }
 await client.end();
-const env = `DATABASE_URL="postgresql://postgres:${settings.password}@localhost:55432/trelloia_utf8"\nJWT_SECRET="${randomBytes(48).toString('hex')}"\nFRONTEND_URL="http://localhost:3030"\nPORT=3000\nEMAIL_USER=""\nEMAIL_PASS=""\nOPENROUTER_API_KEY=""\nOPENROUTER_MODEL=""\n`;
+const env = `DATABASE_URL="postgresql://postgres:${settings.password}@localhost:55432/trelloia_utf8"\nJWT_SECRET="${randomBytes(48).toString('hex')}"\nFRONTEND_URL="http://localhost:3030"\nPORT=3000\nEMAIL_USER=""\nEMAIL_PASS=""\nGROQ_API_KEY=""\n`;
 if (!existsSync('.env')) await writeFile('.env', env, { mode: 0o600 });
 if (!existsSync('.env.test.local'))
   await writeFile('.env.test.local', env.replace('/trelloia_utf8"', '/trelloia_utf8_test"'), {

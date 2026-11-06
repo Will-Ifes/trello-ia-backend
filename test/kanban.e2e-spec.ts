@@ -5,6 +5,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from '../src/auth/auth.service';
+import { AiQuotaService } from '../src/boards/ai-quota.service';
 import { configureApp } from '../src/config/configure-app';
 
 describe('Kanban persistido e isolamento de usuários', () => {
@@ -180,9 +181,71 @@ describe('Kanban persistido e isolamento de usuários', () => {
     mail.mockRestore();
   });
 
+  it('mantém limite diário e exclusão mútua entre instâncias da API', async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: owner.email } });
+    const first = new AiQuotaService(prisma);
+    const second = new AiQuotaService(prisma);
+    const reservations = await Promise.allSettled([
+      first.reserve(user.id),
+      second.reserve(user.id),
+    ]);
+    expect(reservations.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(reservations.filter((r) => r.status === 'rejected')).toHaveLength(1);
+    for (const r of reservations) if (r.status === 'fulfilled') await r.value();
+    for (let i = 0; i < 4; i++) await (await second.reserve(user.id))();
+    await expect(first.reserve(user.id)).rejects.toMatchObject({ status: 429 });
+    const row = await prisma.aiGenerationUsage.findFirstOrThrow({ where: { userId: user.id } });
+    expect(row.attempts).toBe(5);
+    // Isolated test data only: allow the next test to exercise the generation route.
+    await prisma.aiGenerationUsage.deleteMany({ where: { userId: user.id } });
+  });
+
+  it('gera pela rota autenticada, persiste plano e mantém isolamento de usuário', async () => {
+    const key = process.env.GROQ_API_KEY;
+    process.env.GROQ_API_KEY = 'isolated-test-key';
+    const provider = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: {
+                content: JSON.stringify({
+                  title: 'Feira de livros',
+                  description: 'Plano gerado em teste',
+                  lists: [
+                    {
+                      title: 'Preparar',
+                      cards: [{ title: 'Escolher livros', description: 'Separar títulos' }],
+                    },
+                  ],
+                }),
+              },
+            },
+          ],
+        }),
+      ),
+    );
+    try {
+      const status = await call('get', '/ai/status').expect(200);
+      expect(status.body).toMatchObject({ available: true, provider: 'Groq', dailyLimit: 5 });
+      const result = await call('post', '/ai/boards')
+        .send({ prompt: 'Organizar uma feira de livros' })
+        .expect(201);
+      expect(result.body.lists[0].cards[0].title).toBe('Escolher livros');
+      await call('get', `/boards/${result.body.id}`).expect(200);
+      await call('get', `/boards/${result.body.id}`, otherCookie).expect(404);
+      await call('delete', `/boards/${result.body.id}`).expect(200);
+    } finally {
+      provider.mockRestore();
+      if (key === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = key;
+    }
+  });
+
   it('IA sem credenciais fica indisponível sem criar quadros', async () => {
-    const key = process.env.OPENROUTER_API_KEY;
-    delete process.env.OPENROUTER_API_KEY;
+    const key = process.env.GROQ_API_KEY;
+    delete process.env.GROQ_API_KEY;
     try {
       const status = await call('get', '/ai/status').expect(200);
       expect(status.body.available).toBe(false);
@@ -190,7 +253,7 @@ describe('Kanban persistido e isolamento de usuários', () => {
         .send({ prompt: 'Organizar um lançamento de produto' })
         .expect(503);
     } finally {
-      if (key) process.env.OPENROUTER_API_KEY = key;
+      if (key) process.env.GROQ_API_KEY = key;
     }
   });
 

@@ -32,7 +32,11 @@ O arquivo antigo do frontend desabilitava deploys pelo GitHub e ignorava o build
 
 ## Variáveis opcionais
 
-`OPENROUTER_API_KEY` e `OPENROUTER_MODEL` habilitam geração de quadros. Chamadas a modelos podem ter custo próprio; a hospedagem gratuita não inclui créditos de IA.
+`GROQ_API_KEY` habilita a geração de quadros com `openai/gpt-oss-20b`, disponível no plano Groq Free. Crie a chave em [Groq Console](https://console.groq.com/keys) e salve como **Secret/Sensitive**, somente no backend, no ambiente Production. Publique novamente após salvar a variável. Não use prefixos públicos nem coloque a chave no frontend.
+
+Mantenha a conta Groq no plano Free e não habilite upgrade/faturamento pago. As cotas do provedor podem mudar e são compartilhadas por todos os usuários. O aplicativo limita cada conta a 5 tentativas por dia UTC, incluindo falhas, sem retentativas automáticas ou fallback para outro provedor. O limite persistido no PostgreSQL funciona entre instâncias da Vercel; ele reduz abuso por conta, mas não substitui as cotas globais da Groq.
+
+Somente o prompt é enviado à Groq; o sistema não envia nome, e-mail, senha ou quadros existentes. A Groq informa que não usa inferências para treino e não retém entradas/saídas por padrão, com exceções documentadas: [política de dados](https://console.groq.com/docs/your-data). Confira a configuração de dados da sua conta. O texto não deve conter informações sensíveis. [Limites gratuitos atuais](https://console.groq.com/docs/rate-limits).
 
 `EMAIL_USER` e `EMAIL_PASS` habilitam recuperação via Gmail com senha de aplicativo. Nunca coloque chaves, senhas ou strings de conexão no README, no código ou em variáveis públicas do Next.
 

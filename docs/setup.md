@@ -48,7 +48,7 @@ Para publicar, configure HTTPS, `COOKIE_SECURE=true`, `FRONTEND_URL`, segredo JW
 
 ## IA e recuperação de senha
 
-Defina `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` no backend para habilitar a criação com IA. Use um modelo com suporte a JSON. Consulte o [contrato oficial do OpenRouter](https://openrouter.ai/docs/api_reference/overview). A chave nunca vai ao navegador. Sem configuração, o endpoint retorna 503 e a interface orienta a criação manual. O texto enviado pelo usuário é compartilhado com o provedor; não há geração fictícia como fallback.
+Defina `GROQ_API_KEY` no backend para habilitar a criação com IA via Groq Free (`openai/gpt-oss-20b`). A chave nunca vai ao navegador. Sem configuração, o endpoint retorna 503 e a interface orienta a criação manual. Somente o texto digitado é compartilhado com a Groq; não há geração fictícia nem fallback pago. Cada conta tem 5 tentativas/dia UTC, com controle persistido no banco. Veja [configuração, cotas e política de dados](deploy.md#variáveis-opcionais).
 
 Para recuperação real, configure `EMAIL_USER` e `EMAIL_PASS` com uma conta Gmail e senha de aplicativo. Os testes substituem o envio de e-mail e o provedor de IA; não enviam mensagens nem consomem créditos reais.
 

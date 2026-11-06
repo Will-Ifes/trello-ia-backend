@@ -19,8 +19,19 @@ model User {
   // 👇 Relação inversa com PasswordResetToken
   resetTokens PasswordResetToken[]
   boards Board[]
+  aiUsage AiGenerationUsage[]
 
   @@map("User")
+}
+
+model AiGenerationUsage {
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day String
+  attempts Int @default(0)
+  lockToken String
+  lockedUntil DateTime
+  @@id([userId, day])
 }
 
 model Board {
