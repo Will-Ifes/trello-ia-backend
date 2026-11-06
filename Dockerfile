@@ -1,53 +1,22 @@
-# Etapa 1: build da aplicação
-FROM node:23-alpine AS builder
-
-# Instala dependências essenciais
-RUN apk add --no-cache bash curl
-
-# Habilita o corepack e prepara o pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Define diretório de trabalho
+FROM node:24-bookworm-slim AS build
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
 WORKDIR /app
-
-# Copia arquivos de dependências
-COPY package.json pnpm-lock.yaml ./
-
-# Instala dependências de produção + build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile
-
-# Copia o restante do projeto
 COPY . .
+RUN pnpm db:generate && pnpm build && pnpm prune --prod
 
-# Gera Prisma Client e compila o projeto
-RUN pnpm exec prisma generate
-RUN pnpm build
-
-# Etapa 2: imagem final para execução
-FROM node:23-alpine AS production
-
-# Habilita pnpm na imagem final
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Define diretório de trabalho
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
 WORKDIR /app
-
-# Copia apenas os artefatos necessários da etapa anterior
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
-
-# Executa novamente o prisma generate (garantia de compatibilidade)
-RUN pnpm exec prisma generate
-
-# Expõe a porta padrão do NestJS
+ENV NODE_ENV=production
+COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
+COPY --from=build --chown=node:node /app/prisma ./prisma
+COPY --from=build --chown=node:node /app/package.json /app/pnpm-workspace.yaml ./
+USER node
 EXPOSE 3000
-
-# Copia e prepara o script de entrada
-COPY entrypoint.prod.sh /entrypoint.prod.sh
-RUN chmod +x /entrypoint.prod.sh
-
-# Usa o script como comando de entrada
-CMD ["/entrypoint.prod.sh"]
-
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/src/main.js"]

@@ -1,15 +1,12 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { createHash, randomBytes } from 'node:crypto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../../prisma/prisma.service';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -18,12 +15,17 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  private sanitizeUser(user: any) {
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+  private sanitizeUser(user: User) {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  async register(dto: RegisterDto): Promise<any> {
+  async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -45,7 +47,7 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
-  async login(dto: LoginDto): Promise<{ token: string; user: any }> {
+  async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -65,7 +67,7 @@ export class AuthService {
     };
   }
 
-  async validateUser(userId: string): Promise<any> {
+  async validateUser(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -77,28 +79,48 @@ export class AuthService {
 
   async sendResetLink(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new NotFoundException('Usuário não encontrado');
+    const message = 'Se o e-mail estiver cadastrado, você receberá um link de recuperação.';
+    if (!user) return { message };
 
-    const token = this.jwtService.sign({ sub: user.id }, { expiresIn: '15m' });
+    const token = randomBytes(32).toString('hex');
+    const stored = await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: createHash('sha256').update(token).digest('hex'),
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
 
     const baseUrl = process.env.FRONTEND_URL;
     const resetLink = `${baseUrl}/reset-password?token=${token}`;
 
-    await this.sendEmail(email, 'Recuperação de senha', `Clique para redefinir: ${resetLink}`);
-
-    return { message: 'E-mail enviado com sucesso' };
+    try {
+      await this.sendEmail(email, 'Recuperação de senha', `Clique para redefinir: ${resetLink}`);
+    } catch (error) {
+      await this.prisma.passwordResetToken.delete({ where: { id: stored.id } });
+      throw error;
+    }
+    return { message };
   }
 
   async resetPassword(token: string, newPassword: string) {
     try {
-      const payload = await this.jwtService.verifyAsync(token);
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await this.prisma.user.update({
-        where: { id: payload.sub },
-        data: { password: hashedPassword },
+      await this.prisma.$transaction(async (tx) => {
+        const saved = await tx.passwordResetToken.findUnique({
+          where: { token: createHash('sha256').update(token).digest('hex') },
+        });
+        if (!saved || saved.expiresAt <= new Date()) throw new Error('Expired token');
+        // Conditional delete makes concurrent attempts single-use as well.
+        const consumed = await tx.passwordResetToken.deleteMany({
+          where: { id: saved.id, expiresAt: { gt: new Date() } },
+        });
+        if (consumed.count !== 1) throw new Error('Consumed token');
+        await tx.user.update({ where: { id: saved.userId }, data: { password: hashedPassword } });
+        await tx.passwordResetToken.deleteMany({ where: { userId: saved.userId } });
       });
       return { message: 'Senha atualizada com sucesso' };
-    } catch (e) {
+    } catch {
       throw new UnauthorizedException('Token inválido ou expirado');
     }
   }
@@ -113,14 +135,12 @@ export class AuthService {
         },
       });
 
-      const info = await transporter.sendMail({
+      await transporter.sendMail({
         from: `"Trello.ia" <${process.env.EMAIL_USER}>`,
         to,
         subject,
         text,
       });
-
-      console.log('[EMAIL ENVIADO]', info);
     } catch (error) {
       console.error('[ERRO AO ENVIAR EMAIL]', error);
       throw new Error('Erro ao enviar e-mail');

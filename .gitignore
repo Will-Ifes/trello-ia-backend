@@ -55,6 +55,11 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .pnpm-store
 cookies.txt
+.local-db/
+.local-db-credentials.json
+.lint-*.txt
+.lint-*.json
+.audit-*.json
 # Local credentials and generated output
 .env*
 !.env.example

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
@@ -10,7 +11,7 @@ describe('AuthController (Login) - E2E', () => {
 
   const validUser = {
     name: 'Will Teste',
-    email: 'willTeste@gmail.com',
+    email: `auth-test-${randomUUID()}@example.com`,
     password: 'novaSenha@123@',
   };
 

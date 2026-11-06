@@ -1,0 +1,36 @@
+name: trello-ia
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trelloia-development}
+      POSTGRES_DB: trelloia
+    volumes: [trelloia-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d trelloia']
+      interval: 5s
+      timeout: 5s
+      retries: 15
+  backend:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-trelloia-development}@db:5432/trelloia
+      JWT_SECRET: ${JWT_SECRET:?Configure JWT_SECRET no arquivo .env}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3030}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+    depends_on:
+      db: { condition: service_healthy }
+  frontend:
+    build: ../trello-ia-frontend
+    ports: ['3030:3030']
+    environment:
+      API_INTERNAL_URL: http://backend:3000
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    depends_on: [backend]
+volumes:
+  trelloia-data:

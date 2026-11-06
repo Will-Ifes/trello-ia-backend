@@ -1,149 +1,98 @@
 <p align="center">
-  <img src="./.github/readme-cover.svg" alt="Trello.ia | identidade: Cadastro, autenticação e recuperação de acesso." width="100%" />
+  <img src="./.github/readme-cover.svg" alt="Trello.ia: identidade, persistência e planejamento com inteligência artificial." width="100%" />
 </p>
 
-# Trello.ia · Backend
+# Trello.ia · identidade e organização
 
-API de autenticação e persistência para uma aplicação de organização de tarefas.
+A API que dá continuidade aos projetos: autentica usuários, protege o acesso aos quadros e mantém listas e cartões no PostgreSQL. A IA transforma uma ideia em um plano inicial, com o provedor configurado no servidor.
 
-**NestJS · TypeScript · Prisma · PostgreSQL**
+**NestJS 11 · TypeScript · Prisma 6 · PostgreSQL**
 
-[Frontend](https://github.com/Will-Ifes/trello-ia-frontend) · [Código](src) · [Execução](#executar)
+[![Verificações](https://github.com/Will-Ifes/trello-ia-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Will-Ifes/trello-ia-backend/actions/workflows/ci.yml)
 
-## Explore o diferencial
+[Frontend](https://github.com/Will-Ifes/trello-ia-frontend) · [Código](src) · [Execução detalhada](docs/setup.md) · [Publicação](docs/deploy.md)
 
-| Ponto de entrada | O que observar |
-| --- | --- |
-| [Regras além do endpoint](src/auth/auth.service.ts) | O service reúne hash, autenticação e recuperação de senha. |
-| [Teste do domínio](src/auth/auth.service.spec.ts) | Os testes do service documentam cenários do fluxo de autenticação. |
+## O que a API entrega
 
-## Destaques
+- Cadastro, login com cookie HTTP-only e identidade autenticada.
+- Recuperação de senha por e-mail com token aleatório, hash persistido, expiração e uso único.
+- Quadros, listas e cartões vinculados ao proprietário.
+- Movimentação entre listas do mesmo quadro, prazo e conclusão de tarefas.
+- Geração de quadros por OpenRouter, com validação da resposta e gravação atômica.
+- Validação global de entradas, limites de requisições e logs sem corpo de senhas.
 
-- Cadastro e login de usuários com senha armazenada em hash.
-- Autenticação JWT com cookie HTTP-only.
-- Solicitação de recuperação e redefinição de senha por e-mail.
-- Schema e migrações de banco com Prisma.
-- Testes para os fluxos de autenticação.
-- Arquivos de Docker para ambientes de desenvolvimento e produção.
+## Da base inicial ao MVP
 
-> **Em desenvolvimento:** quadros, listas, cards e IA ainda fazem parte do roadmap.
+| Antes                                        | Agora                                               |
+| -------------------------------------------- | --------------------------------------------------- |
+| Apenas autenticação parcial                  | Identidade e Kanban integrados                      |
+| Nenhum modelo de quadro, lista ou cartão     | Relações e migração de banco versionadas            |
+| Regras de DTO sem aplicação global           | ValidationPipe com rejeição de campos desconhecidos |
+| Recuperação aceitava JWT sem consumo         | Token opaco com hash, expiração e consumo único     |
+| Cookie exigia HTTPS também no ambiente local | Configuração compatível com cada ambiente           |
+| Dependências antigas e testes parciais       | Dependências corrigidas, testes com banco real e CI |
 
-<details>
-<summary><strong>Arquitetura e código</strong></summary>
+## Arquitetura
 
-### Decisões
+| Caminho                                          | Responsabilidade                                |
+| ------------------------------------------------ | ----------------------------------------------- |
+| [Autenticação](src/auth)                         | Cadastro, senha, JWT e recuperação              |
+| [Quadros](src/boards)                            | Propriedade, operações e geração por IA         |
+| [Schema Prisma](prisma/schema.prisma)            | Usuário, recuperação, quadros, listas e cartões |
+| [Configuração HTTP](src/config/configure-app.ts) | Validação, cookies, CORS e logs                 |
+| [Integração](test/kanban.e2e-spec.ts)            | Persistência e isolamento entre usuários        |
 
-A API começa pelo domínio de identidade: cadastro, login, consulta do usuário e recuperação de senha. O NestJS separa controller, service, estratégia JWT e acesso ao banco.
+O frontend Next.js encaminha as chamadas do navegador para a API. A autorização é aplicada também no servidor: conhecer o identificador de outro quadro não concede acesso.
 
-- **Prisma:** schema e migrações tornam as relações de dados explícitas.
-- **Hash de senha:** o service usa bcryptjs e remove a senha das respostas preparadas para o cliente.
-- **JWT:** autenticação de rotas e token temporário de recuperação.
-- **Cookie HTTP-only:** o controller configura o cookie de login; as ações do frontend fazem a integração.
+## Executar localmente
 
-### Caminhos de leitura
+Requer **Node.js 24** e **pnpm 11.25.0**.
 
-- [Controller e contrato HTTP](src/auth/auth.controller.ts).
-- [Hash, autenticação e recuperação](src/auth/auth.service.ts).
-- [Configuração obrigatória do segredo](src/config/jwt-secret.ts).
-- [Schema](prisma/schema.prisma).
-- [Testes do service](src/auth/auth.service.spec.ts).
-- [Teste de login de ponta a ponta](test/auth/login.e2e-spec.ts).
-
-### Endpoints
-
-| Método | Rota | Finalidade |
-| --- | --- | --- |
-| POST | `/auth/register` | Cadastro |
-| POST | `/auth/login` | Login e cookie |
-| POST | `/auth/forgot-password` | Solicitar link por e-mail |
-| POST | `/auth/reset-password` | Redefinir senha com token |
-| POST | `/auth/logout` | Limpar cookie |
-| GET | `/auth/me` | Consultar identidade autenticada |
-
-### Organização
-
-```text
-src/
-├── auth/          # Cadastro, login, recuperação e JWT
-├── config/        # Configuração de ambiente
-├── users/         # Estrutura inicial do módulo de usuários
-├── app.module.ts  # Módulo principal
-└── main.ts        # Inicialização da API
-prisma/
-├── migrations/    # Histórico do esquema do banco
-└── schema.prisma  # Modelos de dados
-test/              # Testes de integração
+```sh
+pnpm install --frozen-lockfile
+pnpm db:local
 ```
 
-### Tecnologias
+Deixe o PostgreSQL local rodando e, em outro terminal:
 
-- **NestJS 11 e TypeScript** · estrutura da API.
-- **Prisma ORM + PostgreSQL** · modelo de dados e migrações.
-- **JWT, Passport e bcryptjs** · autenticação e proteção de senha.
-- **class-validator** · declara regras nos DTOs; a aplicação global dessas regras ainda precisa de revisão.
-- **Jest + Supertest** · testes unitários e de integração.
-- **Docker, ESLint e Prettier** · ambiente de desenvolvimento e qualidade de código.
-
-</details>
-
-<a id="executar"></a>
-
-<details>
-<summary><strong>Executar, testar e configurar</strong></summary>
-
-Requer Node.js, pnpm e PostgreSQL. Copie `.env.example` para `.env` e configure seus próprios valores de `DATABASE_URL`, `JWT_SECRET` e `FRONTEND_URL`. Para recuperação de senha, configure também `EMAIL_USER` e `EMAIL_PASS`.
-
-```bash
-cp .env.example .env
-pnpm install
-pnpm prisma generate
-pnpm prisma migrate dev
+```sh
+pnpm db:generate
+pnpm db:migrate
 pnpm start:dev
 ```
 
-Os arquivos `docker-compose.dev.yml` e `docker-compose.prod.yml` estão disponíveis para quem preferir rodar os serviços em contêineres. Eles exigem as variáveis locais e a rede externa `trelloia-shared`.
+A API atende em [localhost:3000](http://localhost:3000). O banco de desenvolvimento usa a porta 55432 e arquivos locais ignorados pelo Git. O script cria os ambientes apenas se estiverem ausentes, preserva os dados e separa a base de testes.
 
-### Scripts disponíveis
+<details>
+<summary><strong>Testes, configuração e produção</strong></summary>
 
-| Comando | Finalidade |
-| --- | --- |
-| `pnpm start:dev` | Inicia a API com recarregamento |
-| `pnpm build` | Compila a aplicação |
-| `pnpm start:prod` | Executa a build compilada |
-| `pnpm prisma generate` | Gera o cliente Prisma |
-| `pnpm prisma migrate dev` | Aplica migrações no banco local |
-| `pnpm test` | Executa testes unitários |
-| `pnpm test:e2e` | Executa testes de integração |
-| `pnpm test:cov` | Gera cobertura dos testes |
+```sh
+pnpm lint
+pnpm build
+pnpm test --runInBand
+pnpm test:e2e
+pnpm audit --prod
+```
 
-### Ambiente
+Foram aprovados 30 testes unitários e 14 de integração com PostgreSQL, incluindo isolamento por proprietário, movimentação, cascata e recuperação de senha. A CI executa esses comandos em Linux com PostgreSQL 16.
 
-O arquivo [`.env.example`](.env.example) contém apenas valores de exemplo. Crie segredos novos para seu ambiente e mantenha `.env` e `.env.prod` fora do versionamento. A aplicação exige `JWT_SECRET` configurado; não utiliza uma chave padrão no código.
+`test:e2e` exige banco com nome terminado em `_test`. No Windows, encerre a API antes de regenerar o Prisma Client, pois o engine DLL fica aberto pelo processo.
 
-### Pontos de atenção
+Para usar um banco próprio, configure `.env` a partir de `.env.example`. `DATABASE_URL`, `JWT_SECRET` e `FRONTEND_URL` são necessários. E-mail e IA usam variáveis adicionais no servidor; os testes não enviam mensagens nem consomem créditos reais.
 
-Os DTOs possuem regras de validação, mas a inicialização atual não registra um `ValidationPipe` global; a aplicação dessas regras deve ser revisada. O token de recuperação é verificado por JWT e expiração; invalidação após uso e proteção contra abuso são evoluções pendentes. O cookie usa `secure: true`, portanto o transporte local precisa ser compatível.
+O deploy gratuito foi preparado para Vercel Hobby e Neon Free. O build de produção gera o cliente, aplica migrações e compila a API. A publicação ainda precisa das contas conectadas e de validação na URL pública. Veja [docs/deploy.md](docs/deploy.md).
 
-Os testes estão versionados; isso não comprova cobertura completa ou aprovação atual. Configure banco e e-mail de teste próprios. Quadros, listas, cards e IA ainda não são recursos entregues.
+Docker, todos os endpoints e os comandos completos estão no [guia de execução](docs/setup.md). Os contêineres ainda não foram executados nesta recuperação.
 
 </details>
 
 <details>
-<summary><strong>Documentação, evolução e créditos</strong></summary>
+<summary><strong>Limites e créditos</strong></summary>
 
- 
+Este MVP é pessoal. Colaboração, convites, anexos e rotinas recorrentes seguem como evolução. Os limites de requisições e o controle de geração simultânea usam a memória da instância; escala com múltiplas réplicas exige armazenamento compartilhado. JWT expira em um dia.
 
-### Evolução
+Desenvolvido por **Wildemberg de Jesus Oliveira (Will)** · [LinkedIn](https://www.linkedin.com/in/wildemberg-de-jesus-oliveira/)
 
-- CRUD de quadros, listas e cards.
-- Regras de colaboração e organização de tarefas.
-- Recursos de IA para sugestões e automações.
-
-### Colaboração e licença
-
-Sugestões podem ser enviadas por issue ou pull request. O projeto ainda não possui licença definida; consulte o autor antes de reutilizar o código fora das permissões padrão do GitHub.
-
-Desenvolvido por **Wildemberg de Jesus Oliveira (Will)** · [LinkedIn](https://www.linkedin.com/in/wildemberg-de-jesus-oliveira/)  
-Projeto iniciado em 2025 em outra conta GitHub e reunido neste perfil em uma cópia revisada.
+Projeto iniciado em 2025, recuperado e integrado em 2026. Sem licença de reutilização definida.
 
 </details>

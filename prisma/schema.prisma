@@ -18,8 +18,45 @@ model User {
 
   // 👇 Relação inversa com PasswordResetToken
   resetTokens PasswordResetToken[]
+  boards Board[]
 
   @@map("User")
+}
+
+model Board {
+  id String @id @default(uuid())
+  title String
+  description String @default("")
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  lists BoardList[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([ownerId])
+}
+
+model BoardList {
+  id String @id @default(uuid())
+  title String
+  position Int @default(0)
+  boardId String
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards Card[]
+  @@index([boardId])
+}
+
+model Card {
+  id String @id @default(uuid())
+  title String
+  description String @default("")
+  position Int @default(0)
+  completed Boolean @default(false)
+  dueDate DateTime?
+  listId String
+  list BoardList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([listId])
 }
 
 model PasswordResetToken {

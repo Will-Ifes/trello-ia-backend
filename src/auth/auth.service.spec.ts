@@ -3,13 +3,12 @@ import { AuthService } from './auth.service';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { ConflictException, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 
 jest.mock('bcryptjs');
 
 describe('AuthService', () => {
   let authService: AuthService;
-  let jwtService: jest.Mocked<JwtService>;
 
   const mockJwt = {
     signAsync: jest.fn(),
@@ -18,6 +17,13 @@ describe('AuthService', () => {
   };
 
   const mockPrisma = {
+    passwordResetToken: {
+      create: jest.fn().mockResolvedValue({ id: 'reset-1' }),
+      findUnique: jest.fn(),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+      delete: jest.fn(),
+    },
+    $transaction: jest.fn(),
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -26,6 +32,7 @@ describe('AuthService', () => {
   };
 
   beforeEach(async () => {
+    mockPrisma.$transaction.mockImplementation((fn) => fn(mockPrisma));
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -35,7 +42,6 @@ describe('AuthService', () => {
     }).compile();
 
     authService = module.get<AuthService>(AuthService);
-    jwtService = module.get<JwtService>(JwtService) as jest.Mocked<JwtService>;
 
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -116,20 +122,27 @@ describe('AuthService', () => {
 
       const result = await authService.sendResetLink('test@email.com');
 
-      expect(result).toEqual({ message: 'E-mail enviado com sucesso' });
+      expect(result.message).toMatch(/Se o e-mail estiver cadastrado/);
       expect(spy).toHaveBeenCalled();
     });
 
-    it('deve lançar erro se usuário não encontrado', async () => {
+    it('não deve revelar se o usuário está cadastrado', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(authService.sendResetLink('x@email.com')).rejects.toThrow(NotFoundException);
+      await expect(authService.sendResetLink('x@email.com')).resolves.toEqual({
+        message: expect.stringContaining('Se o e-mail estiver cadastrado'),
+      });
+      expect(mockPrisma.passwordResetToken.create).not.toHaveBeenCalled();
     });
   });
 
   describe('resetPassword', () => {
     it('deve atualizar a senha do usuário', async () => {
-      mockJwt.verifyAsync.mockResolvedValue({ sub: '1' });
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
+        id: 'reset-1',
+        userId: '1',
+        expiresAt: new Date(Date.now() + 60000),
+      });
       (bcrypt.hash as jest.Mock).mockResolvedValue('newHash');
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -143,9 +156,22 @@ describe('AuthService', () => {
     });
 
     it('deve lançar exceção se token for inválido', async () => {
-      mockJwt.verifyAsync.mockRejectedValue(new Error());
+      mockPrisma.passwordResetToken.findUnique.mockResolvedValue(null);
 
       await expect(authService.resetPassword('token', 'x')).rejects.toThrow(UnauthorizedException);
     });
+  });
+
+  it('não aceita token consumido em uma tentativa concorrente', async () => {
+    mockPrisma.passwordResetToken.findUnique.mockResolvedValue({
+      id: 'reset-1',
+      userId: '1',
+      expiresAt: new Date(Date.now() + 60000),
+    });
+    mockPrisma.passwordResetToken.deleteMany.mockResolvedValueOnce({ count: 0 });
+    await expect(authService.resetPassword('token', 'NewPassword123!')).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(mockPrisma.user.update).not.toHaveBeenCalled();
   });
 });
