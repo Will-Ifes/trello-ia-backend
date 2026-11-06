@@ -77,20 +77,24 @@ describe('AuthController', () => {
 
   describe('forgotPassword', () => {
     it('deve enviar um link de redefinição de senha', async () => {
-      const result = await controller.forgotPassword('will@email.com');
+      const result = await controller.forgotPassword({ email: 'will@email.com' });
       expect(result).toEqual({ message: 'E-mail enviado com sucesso' });
     });
   });
 
   describe('resetPassword', () => {
     it('deve lançar exceção se as senhas não coincidirem', async () => {
-      await expect(controller.resetPassword('token', '123456', '654321')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        controller.resetPassword({ token: 'token', password: '123456', confirmPassword: '654321' }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('deve redefinir a senha se o token e as senhas forem válidos', async () => {
-      const result = await controller.resetPassword('token', '123456', '123456');
+      const result = await controller.resetPassword({
+        token: 'token',
+        password: '123456',
+        confirmPassword: '123456',
+      });
       expect(result).toEqual({ message: 'Senha atualizada com sucesso' });
     });
   });

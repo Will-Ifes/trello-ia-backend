@@ -1,37 +1,10 @@
-# Imagem base leve com Node + Alpine Linux
-FROM node:23-alpine
-
-# Instala dependências úteis para o ambiente de desenvolvimento
-RUN apk add --no-cache bash curl
-
-# Habilita e prepara o pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Define o diretório de trabalho
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
 WORKDIR /app
-
-# Copia os arquivos de dependência
-COPY package.json pnpm-lock.yaml ./
-
-# Instala as dependências (sem gerar cache do pnpm)
-RUN pnpm install
-
-# Copia o restante do código do projeto
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY prisma ./prisma
+RUN pnpm install --frozen-lockfile
 COPY . .
-
-# Gera o Prisma Client (evita erros no dev)
-RUN pnpm exec prisma generate
-
-# Gera o Prisma Client (evita erros no dev)
-RUN pnpm exec prisma generate
-
-# Expõe a porta que o NestJS usará
 EXPOSE 3000
-
-# ⬇️ Executa migrations e inicia com hot reload
-COPY entrypoint.dev.sh /entrypoint.dev.sh
-RUN chmod +x /entrypoint.dev.sh
-
-CMD ["/entrypoint.dev.sh"]
-
-
+CMD ["pnpm", "start:dev"]

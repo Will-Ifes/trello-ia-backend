@@ -14,8 +14,12 @@ import type { Response, Request } from 'express';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt/jwt.guard';
+import { RecoverDto } from './dto/recover.dto';
+import { ResetDto } from './dto/reset.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
+@Throttle({ default: { limit: 10, ttl: 60000 } })
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -32,7 +36,8 @@ export class AuthController {
       res.cookie('auth_token', token, {
         httpOnly: true,
         sameSite: 'lax',
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
         maxAge: 1000 * 60 * 60 * 24, // 1 dia
       });
 
@@ -44,21 +49,18 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  async forgotPassword(@Body('email') email: string) {
+  async forgotPassword(@Body() dto: RecoverDto) {
     try {
-      return await this.authService.sendResetLink(email);
+      return await this.authService.sendResetLink(dto.email);
     } catch (error) {
       console.error('[FORGOT PASSWORD ERROR]', error);
-      throw new BadRequestException(error.message);
+      throw new BadRequestException('Não foi possível enviar o e-mail de recuperação.');
     }
   }
 
   @Post('reset-password')
-  async resetPassword(
-    @Body('token') token: string,
-    @Body('password') password: string,
-    @Body('confirmPassword') confirmPassword: string,
-  ) {
+  async resetPassword(@Body() dto: ResetDto) {
+    const { token, password, confirmPassword } = dto;
     if (password !== confirmPassword) {
       throw new BadRequestException('Senhas não coincidem');
     }
@@ -72,6 +74,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 120, ttl: 60000 } })
   @Get('me')
   me(@Req() req: Request) {
     return req.user;
