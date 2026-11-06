@@ -21,7 +21,8 @@
     "tree": "tree -L 3 -I 'node_modules|.git|.next|dist|coverage|build|*.map|*.tsbuildinfo|*.d.ts|*.js|*.cjs|*.mjs|*.html|*.json|pnpm-lock.yaml|package-lock.json|public|.turbo|.vscode|.idea|.husky|.github|.swc' -a",
     "db:local": "node scripts/local-db.mjs",
     "db:migrate": "prisma migrate deploy",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "vercel-build": "pnpm db:generate && pnpm db:migrate && pnpm build"
   },
   "dependencies": {
     "@nestjs/common": "^11.2.8",
@@ -95,6 +96,6 @@
   },
   "packageManager": "pnpm@11.25.0",
   "engines": {
-    "node": ">=22.13.0"
+    "node": "24.x"
   }
 }
