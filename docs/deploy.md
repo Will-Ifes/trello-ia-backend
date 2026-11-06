@@ -14,8 +14,8 @@ Use somente os planos gratuitos, sem ativar trial Pro, upgrades ou recursos pago
 
 1. Crie um projeto Neon Free e guarde a conexão de produção como segredo.
 2. Importe `trello-ia-backend` na Vercel como NestJS, com Node.js 24.
-3. Configure `DATABASE_URL`, `JWT_SECRET` aleatório com pelo menos 32 bytes, e `FRONTEND_URL` com o domínio definitivo do frontend.
-4. O comando de build da API gera o Prisma Client, aplica as migrações e compila o NestJS. Aponte previews para um banco/branch Neon separado; nunca reutilize credenciais de produção em previews não confiáveis.
+3. Configure `DATABASE_URL` com a conexão pooled do Neon, `DATABASE_URL_UNPOOLED` com a conexão direta para migrações, `JWT_SECRET` aleatório com pelo menos 32 bytes, e `FRONTEND_URL` com o domínio definitivo do frontend.
+4. O comando de build da API gera o Prisma Client, aplica as migrações pela conexão direta e compila o NestJS. A aplicação continua usando a conexão pooled. Aponte previews para um banco/branch Neon separado; nunca reutilize credenciais de produção em previews não confiáveis.
 5. Importe `trello-ia-frontend` como Next.js na Vercel, com Node.js 24.
 6. Configure `API_INTERNAL_URL` com a URL HTTPS da API e `COOKIE_SECURE=true`.
 7. Atualize `FRONTEND_URL` na API e publique novamente se o domínio só tiver sido definido após a criação do frontend.

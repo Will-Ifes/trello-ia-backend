@@ -20,7 +20,7 @@
     "test:e2e": "node scripts/test-e2e.mjs",
     "tree": "tree -L 3 -I 'node_modules|.git|.next|dist|coverage|build|*.map|*.tsbuildinfo|*.d.ts|*.js|*.cjs|*.mjs|*.html|*.json|pnpm-lock.yaml|package-lock.json|public|.turbo|.vscode|.idea|.husky|.github|.swc' -a",
     "db:local": "node scripts/local-db.mjs",
-    "db:migrate": "prisma migrate deploy",
+    "db:migrate": "node scripts/migrate.mjs",
     "db:generate": "prisma generate",
     "vercel-build": "pnpm db:generate && pnpm db:migrate && pnpm build"
   },
