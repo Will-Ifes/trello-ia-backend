@@ -2,6 +2,13 @@
 
 A aplicação completa precisa de servidor para Next.js/NestJS e de PostgreSQL. O GitHub Pages não executa esses serviços.
 
+## Endereços publicados
+
+- Aplicação: [https://trello-ia-frontend-five.vercel.app](https://trello-ia-frontend-five.vercel.app)
+- API: [trello-ia-backend.vercel.app](https://trello-ia-backend.vercel.app)
+
+O banco definitivo usa a branch `production` do projeto Neon `trello-ia`. As migrações foram verificadas primeiro em `migration-validation`, com testes completos do site público nessa branch. A produção mantém seus dados separados dos testes.
+
 ## Serviços
 
 - Frontend: Vercel, plano **Hobby**, framework Next.js.

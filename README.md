@@ -10,7 +10,7 @@ A API que dá continuidade aos projetos: autentica usuários, protege o acesso a
 
 [![Verificações](https://github.com/Will-Ifes/trello-ia-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Will-Ifes/trello-ia-backend/actions/workflows/ci.yml)
 
-[Frontend](https://github.com/Will-Ifes/trello-ia-frontend) · [Código](src) · [Execução detalhada](docs/setup.md) · [Publicação](docs/deploy.md)
+[Ver aplicação](https://trello-ia-frontend-five.vercel.app) · [Frontend](https://github.com/Will-Ifes/trello-ia-frontend) · [Código](src) · [Execução detalhada](docs/setup.md) · [Publicação](docs/deploy.md)
 
 ## O que a API entrega
 
@@ -80,7 +80,7 @@ Foram aprovados 30 testes unitários e 14 de integração com PostgreSQL, inclui
 
 Para usar um banco próprio, configure `.env` a partir de `.env.example`. `DATABASE_URL`, `JWT_SECRET` e `FRONTEND_URL` são necessários. E-mail e IA usam variáveis adicionais no servidor; os testes não enviam mensagens nem consomem créditos reais.
 
-O deploy gratuito foi preparado para Vercel Hobby e Neon Free. O build de produção gera o cliente, aplica migrações e compila a API. A publicação ainda precisa das contas conectadas e de validação na URL pública. Veja [docs/deploy.md](docs/deploy.md).
+A API está publicada em [trello-ia-backend.vercel.app](https://trello-ia-backend.vercel.app), no Vercel Hobby, com PostgreSQL Neon Free. O build de produção gera o cliente, aplica migrações e compila a API. As migrações foram verificadas em uma branch isolada antes da produção; o fluxo completo do site público passou em desktop e mobile. Veja [docs/deploy.md](docs/deploy.md).
 
 Docker, todos os endpoints e os comandos completos estão no [guia de execução](docs/setup.md). Os contêineres ainda não foram executados nesta recuperação.
 
