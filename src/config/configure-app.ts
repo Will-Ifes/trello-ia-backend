@@ -1,5 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import { HttpLoggerInterceptor } from '../common/interceptors/http-logger.interceptor';
 
 export function configureApp(app: INestApplication) {
