@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   HttpException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -76,6 +77,7 @@ export function parsePlan(value: unknown): Plan {
 
 @Injectable()
 export class BoardAiService {
+  private readonly logger = new Logger(BoardAiService.name);
   constructor(
     private readonly prisma: PrismaService,
     private readonly quota: AiQuotaService,
@@ -94,6 +96,10 @@ export class BoardAiService {
         'A IA precisa ser configurada pelo administrador. Você pode criar quadros manualmente.',
       );
     const release = await this.quota.reserve(ownerId);
+    let stage = 'request';
+    let providerStatus: number | undefined;
+    let finishReason: string | undefined;
+    let completionTokens: number | undefined;
     try {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -120,6 +126,8 @@ export class BoardAiService {
           ],
         }),
       });
+      stage = 'response';
+      providerStatus = response.status;
       if (response.status === 429)
         throw new HttpException(
           'A cota gratuita da IA está ocupada. Tente novamente mais tarde.',
@@ -132,11 +140,21 @@ export class BoardAiService {
       if (!response.ok) throw new Error('Provider error');
       const data = (await response.json()) as {
         choices?: { finish_reason?: string; message?: { content?: unknown } }[];
+        usage?: { completion_tokens?: number };
       };
+      finishReason = ['stop', 'length', 'content_filter', 'tool_calls'].includes(
+        data.choices?.[0]?.finish_reason ?? '',
+      )
+        ? data.choices?.[0]?.finish_reason
+        : 'unknown';
+      if (Number.isSafeInteger(data.usage?.completion_tokens))
+        completionTokens = data.usage?.completion_tokens;
       if (data.choices?.[0]?.finish_reason !== 'stop') throw new Error('Incomplete response');
       const content = data.choices?.[0]?.message?.content;
       if (typeof content !== 'string') throw new Error('Invalid provider response');
+      stage = 'validation';
       const plan = parsePlan(JSON.parse(content));
+      stage = 'persistence';
       return await this.prisma.board.create({
         data: {
           title: plan.title,
@@ -153,6 +171,14 @@ export class BoardAiService {
         include: { lists: { include: { cards: true } } },
       });
     } catch (error) {
+      // Never log prompts, owner identity, credentials, provider bodies or raw errors.
+      this.logger.warn({
+        event: 'board_ai_failed',
+        stage,
+        providerStatus,
+        finishReason,
+        completionTokens,
+      });
       if (error instanceof HttpException) throw error;
       throw new BadGatewayException(
         'Não foi possível gerar o quadro. Tente novamente em instantes.',
