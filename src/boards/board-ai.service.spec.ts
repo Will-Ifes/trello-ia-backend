@@ -1,6 +1,7 @@
 import { BoardAiService, parsePlan } from './board-ai.service';
 import { AiQuotaService } from './ai-quota.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Logger } from '@nestjs/common';
 import { BadGatewayException, ServiceUnavailableException, HttpException } from '@nestjs/common';
 
 const plan = {
@@ -150,6 +151,74 @@ describe('Proteções da geração', () => {
     expect(create).not.toHaveBeenCalled();
     expect(release).toHaveBeenCalledTimes(1);
   });
+  it('informa demora sem gravar e libera a reserva', async () => {
+    const timeout = new Error('private-provider-error');
+    timeout.name = 'TimeoutError';
+    fetchSpy.mockRejectedValue(timeout);
+    await expect(service.generate('owner', 'Meu projeto')).rejects.toMatchObject({ status: 504 });
+    expect(create).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+  it('distingue plano inválido de falha de conexão', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [
+            { finish_reason: 'stop', message: { content: JSON.stringify({ ...plan, lists: [] }) } },
+          ],
+        }),
+      ),
+    );
+    await expect(service.generate('owner', 'Meu projeto')).rejects.toThrow(
+      'A IA retornou um plano inválido',
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
+  it('orienta conferir quadros quando não confirma persistência, sem repetir chamadas', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(plan) } }],
+        }),
+      ),
+    );
+    create.mockRejectedValue(new Error('database-private-details'));
+    await expect(service.generate('owner', 'Meu projeto')).rejects.toThrow('Confira seus quadros');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+  it.each([500, 503])('informa indisponibilidade HTTP %s sem vazar o corpo', async (status) => {
+    fetchSpy.mockResolvedValue(new Response('private-provider-error', { status }));
+    await expect(service.generate('owner', 'Meu projeto')).rejects.toThrow(
+      'temporariamente indisponível',
+    );
+    expect(create).not.toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+  it('registra somente metadados seguros ao falhar, sem texto nem credenciais', async () => {
+    const log = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    fetchSpy.mockRejectedValue(new Error('provider-secret-and-private-prompt'));
+    try {
+      await expect(service.generate('private-owner', 'private-user-prompt')).rejects.toThrow(
+        BadGatewayException,
+      );
+      expect(log).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'board_ai_failed', stage: 'request' }),
+      );
+      const logged = JSON.stringify(log.mock.calls);
+      for (const privateValue of [
+        'provider-secret',
+        'private-prompt',
+        'private-owner',
+        'private-user-prompt',
+        'test-key',
+      ])
+        expect(logged).not.toContain(privateValue);
+    } finally {
+      log.mockRestore();
+    }
+  });
   it('envia somente o prompt, exige esquema estrito e não transmite a identidade', async () => {
     fetchSpy.mockResolvedValue(
       new Response(
@@ -162,6 +231,7 @@ describe('Proteções da geração', () => {
     const options = fetchSpy.mock.calls[0][1] as RequestInit;
     const payload = JSON.parse(options.body as string);
     expect(payload.model).toBe('openai/gpt-oss-20b');
+    expect(payload.max_completion_tokens).toBe(6000);
     expect(payload.response_format.json_schema.strict).toBe(true);
     expect(payload.messages[1]).toEqual({ role: 'user', content: 'Preparar uma feira de livros' });
     expect(options.body).not.toContain('private-owner-id');

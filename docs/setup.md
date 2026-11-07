@@ -64,7 +64,7 @@ pnpm audit --prod
 
 `test:e2e` exige `.env.test.local` ou `DATABASE_URL` com nome de banco terminado em `_test`. Aplica migrações somente nesse banco. Não aponte testes para dados de produção. No Windows, encerre a API antes de regenerar o Prisma Client, pois o processo mantém o engine DLL aberto.
 
-Há testes de integração com banco para autenticação, propriedade dos quadros, listas, cartões, movimentação, exclusão em cascata e recuperação de senha. Os testes da IA cobrem validação da resposta, erro do provedor e ausência de configuração. O GitHub Actions executa lint, build, testes e auditoria de produção.
+Há testes de integração com banco para autenticação, propriedade dos quadros, listas, cartões, movimentação, exclusão em cascata e recuperação de senha. Os testes da IA cobrem validação da resposta, saída truncada, timeout, indisponibilidade do provedor, falha de persistência, privacidade dos logs e ausência de configuração. O plano gerado é conciso (3–4 listas, 2–3 tarefas por lista); o orçamento de saída também reserva espaço para o raciocínio do modelo. Erros não provocam retentativas automáticas. O GitHub Actions executa lint, build, testes e auditoria de produção.
 
 ## Endpoints
 
